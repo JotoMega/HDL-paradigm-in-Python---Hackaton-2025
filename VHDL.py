@@ -5,6 +5,7 @@ import RPi.GPIO as GPIO
 import threading
 import datetime
 
+'''Initial global variables'''
 
 interval = 1
 
@@ -37,10 +38,10 @@ FAN_SPEED_MAX = 100
 FAN_SPEED_MIN = 0
 
 '''
-    Senzor temperature
-    Koriscenje: 
-        1) pozvati sensor = setup_sensor()
-        2) pozvati temperatura = read_temperature(sensor)
+    Temperature sensor
+    Usage: 
+        1) Setting up sensor= setup_sensor()
+        2) Getting temperature data = read_temperature(sensor)
 '''
 def setup_sensor():
     os.system('modprobe w1-gpio')
@@ -75,13 +76,11 @@ def read_temperature(device_file):
 
 '''
     LED
-    Ukljuci LED: turn_on_led(LED_koji_se_ukljucuje)
-    Ugasi LED: turn_off_led(LED_koji_se_gasi)
-    LED1 je na Pinu 17 ukoliko je dobro povezano
-    LED2 je na Pinu 27 ukoliko je dobro povezano
-    LED3 je na Pinu 22 ukoliko je dobro povezano
-    
-    Pinovi u programu se razlikuju po oznaci od onih na raspberry plocici
+    Turning on LED: turn_on_led(LED_koji_se_ukljucuje)
+    Turning off LED: turn_off_led(LED_koji_se_gasi)
+    LED1 is on 17
+    LED2 is on 27
+    LED3 is on 22
 '''
 def turn_on_led(pin):
     GPIO.setmode(GPIO.BCM)
@@ -98,7 +97,9 @@ def read_switch_state(pin):
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  
     return int(GPIO.input(pin))
- 
+
+
+'''PI regulator function for driving the fan''' 
 def PID(temp_setpoint, temp_read):
 	global fan_speed
 	global integral_sum
@@ -117,8 +118,7 @@ def PID(temp_setpoint, temp_read):
 		fan_speed = 0
 	return None
 
-'''ECO PID koriscen prilikom rezima stednje energije
-'''
+'''ECO PID used in the energy saving regime - when there's no one in the room'''
 def ECO_PID(temp_setpoint, temp_read):
 	global fan_speed
 	global integral_sum
@@ -136,7 +136,9 @@ def ECO_PID(temp_setpoint, temp_read):
 	if (fan_speed < FAN_SPEED_MIN):
 		fan_speed = 0
 	return None
-    
+
+
+'''log_logic thread, logging the data into the .txt file'''
 def log_logic(device_file):
 	global interval
 	global sw_window_prev
@@ -181,7 +183,7 @@ def log_logic(device_file):
 			time_curr = datetime.datetime.now()
 			
 	
-	
+'''next_state_logic, thread that captures the states of the switches and sets the state'''	
 def next_state_logic():
 	global STATE
 	global fan_speed
@@ -198,7 +200,7 @@ def next_state_logic():
 					
 					
 			
-	
+'''state_Logic thread that checks the states and executes needed processes accordingly'''	
 def state_logic(device_file):
 	global STATE
 	global fan_speed
@@ -272,7 +274,7 @@ def state_logic(device_file):
 		INPUT_ON = 0
 
 
-
+'''output_logic thread is constantly printing the necessary information to the display - this could be considered as fronted'''
 def output_logic(device_file):
 	#interval = input("Choose interval for logging: \n")
 	global STATE
@@ -311,7 +313,7 @@ def output_logic(device_file):
 				turn_on_led(PIN3)
 			time.sleep(3)
  
-   
+ '''state thread is constantly asking for the state in which the thermostat is working (these states are subset of all of the system states)'''  
 def state():
 	global INPUT_ON
 	while(True):
@@ -319,9 +321,8 @@ def state():
 		if(INPUT_ON == 0):
 			STATE = input()
 			INPUT_ON = 1
-		
-    
-    
+
+'''Main - which inititalizes all of the threads, starts them, and joins them'''
 if __name__ == "__main__":
 	device_file = setup_sensor()
     
